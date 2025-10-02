@@ -68,11 +68,11 @@ const appointmentSchema = new mongoose.Schema({
   doctorId: {
     type: mongoose.Schema.ObjectId,
     required: [true, "Doctor Id Is Invalid!"],
+    default:"68d4af0bd840a75e16364029",
   },
   patientId: {
     type: mongoose.Schema.ObjectId,
     ref: "User",
-    required: [true, "Patient Id Is Required!"],
   },
   status: {
     type: String,

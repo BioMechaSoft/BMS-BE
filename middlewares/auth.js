@@ -3,6 +3,30 @@ import { catchAsyncErrors } from "./catchAsyncErrors.js";
 import ErrorHandler from "./error.js";
 import jwt from "jsonwebtoken";
 
+export const isAuthenticatedUser = async (req, res, next) => {
+  // Check for both adminToken and patientToken
+  const token = req.cookies.patientToken;
+  console.log("Auth Token:", token);
+
+  if (!token) {
+    return next(new ErrorHandler("Please login to access this resource", 401));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id);
+
+    if (!req.user) {
+      return next(new ErrorHandler("User not found", 404));
+    }
+
+    next();
+  } catch (error) {
+    return next(new ErrorHandler("Invalid or expired token", 401));
+  }
+};
+
+
 // Middleware to authenticate dashboard users
 export const isAdminAuthenticated = catchAsyncErrors(
   async (req, res, next) => {
