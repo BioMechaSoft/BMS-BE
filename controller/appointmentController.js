@@ -18,6 +18,7 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     doctor_lastName,
     hasVisited,
     address,
+    password // optional, for new patient creation
   } = req.body;
   console.log("Appointment Request Body: ", req.body);
   if (
@@ -36,7 +37,9 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
   ) {
     return next(new ErrorHandler("Please Fill Full Form!", 400));
   }
-  const doctors = await User.find({},{
+
+  // Find doctor by name, department, and role
+  const doctors = await User.find({
     firstName: doctor_firstName,
     lastName: doctor_lastName,
     role: "Doctor",
@@ -50,7 +53,36 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     console.log("Multiple doctors found with same name, selecting the first one by default.", doctors);
   }
   const doctorId = doctors[0]._id;
-  const patientId = req.user._id;
+
+  let patientId = req.user?._id;
+
+  // If hasVisited is true, check if patient exists, else create
+  if (hasVisited) {
+    let patient = await User.findOne({
+      $or: [
+        { nic: nic },
+        { email: email }
+      ],
+      role: "Patient"
+    });
+    if (!patient) {
+      // If password is not provided, set a default password
+      const patientPassword = password || "defaultPassword123";
+      patient = await User.create({
+        firstName,
+        lastName,
+        email,
+        phone,
+        nic,
+        dob,
+        gender,
+        password: patientPassword,
+        role: "Patient"
+      });
+    }
+    patientId = patient._id;
+  }
+
   const appointment = await Appointment.create({
     firstName,
     lastName,
@@ -85,6 +117,58 @@ export const getAllAppointments = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
+// Get appointments by patient ID
+export const getAppointmentsByPatientId = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
+  const appointments = await Appointment.find({ patientId: id });
+  if (!appointments || appointments.length === 0) {
+    return next(new ErrorHandler("No appointments found for this patient!", 404));
+  }
+  res.status(200).json({
+    success: true,
+    appointments,
+  });
+});
+
+// Search appointments by patient name or phone
+export const searchAppointments = catchAsyncErrors(async (req, res, next) => {
+  const { name, phone } = req.query;
+  if (!name && !phone) {
+    return next(new ErrorHandler("Please provide name or phone to search", 400));
+  }
+  const query = {};
+  if (name) {
+    const regex = new RegExp(name, "i");
+    query.$or = [{ firstName: regex }, { lastName: regex }];
+  }
+  if (phone) {
+    query.phone = phone;
+  }
+  const appointments = await Appointment.find(query);
+  if (!appointments || appointments.length === 0) {
+    return next(new ErrorHandler("No appointments found for given search", 404));
+  }
+  res.status(200).json({ success: true, appointments });
+});
+
+// Update latest appointment for a patient by patient ID
+export const updateAppointmentByPatientId = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params; // patient id
+  const appointments = await Appointment.find({ patientId: id });
+  if (!appointments || appointments.length === 0) {
+    return next(new ErrorHandler("No appointments found for this patient!", 404));
+  }
+  // pick latest by appointment_date
+  appointments.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+  const latest = appointments[0];
+  const updated = await Appointment.findByIdAndUpdate(latest._id, req.body, {
+    new: true,
+    runValidators: true,
+    useFindAndModify: false,
+  });
+  res.status(200).json({ success: true, appointment: updated, message: "Appointment Updated!" });
+});
+
 export const updateAppointmentStatus = catchAsyncErrors(
   async (req, res, next) => {
     const { id } = req.params;
@@ -100,6 +184,7 @@ export const updateAppointmentStatus = catchAsyncErrors(
     res.status(200).json({
       success: true,
       message: "Appointment Status Updated!",
+      appointment,
     });
   }
 );

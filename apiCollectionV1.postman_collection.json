@@ -306,7 +306,7 @@
               "raw": "{\n  \"status\": \"approved\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/api/v1/appointment/update/:id",
+              "raw": "http://localhost:5000//api/v1/appointment/patient/update/:id",
               "protocol": "http",
               "host": [
                 "localhost"

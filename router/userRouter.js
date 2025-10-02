@@ -8,6 +8,11 @@ import {
   logoutAdmin,
   logoutPatient,
   patientRegister,
+  getPatientById,
+  getPatientByNameOrPhone,
+  updatePatientById,
+  getDoctorById,
+  getDoctorsList,
 } from "../controller/userController.js";
 import {
   isAdminAuthenticated,
@@ -25,5 +30,12 @@ router.get("/patient/me", isPatientAuthenticated, getUserDetails);
 router.get("/admin/me",isAdminAuthenticated, getUserDetails);
 router.get("/patient/logout", logoutPatient);
 router.get("/admin/logout", logoutAdmin);
+
+// Patient endpoints
+router.get("/patient/:id", getPatientById);
+router.get("/patient/search", getPatientByNameOrPhone);
+router.put("/patient/:id", updatePatientById);
+router.get("/doctor/:id", getDoctorById);
+router.get("/doctors/list", getDoctorsList);
 
 export default router;

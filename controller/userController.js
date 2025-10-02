@@ -1,3 +1,4 @@
+
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
 import { User } from "../models/userSchema.js";
 import ErrorHandler from "../middlewares/error.js";
@@ -185,6 +186,82 @@ export const getAllDoctors = catchAsyncErrors(async (req, res, next) => {
     success: true,
     doctors,
   });
+});
+
+// Get patient by ID
+export const getPatientById = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
+  const patient = await User.findOne({ _id: id, role: "Patient" });
+  if (!patient) {
+    return next(new ErrorHandler("Patient not found!", 404));
+  }
+  res.status(200).json({
+    success: true,
+    patient,
+  });
+});
+
+// Get patient by name or phone (query params: name, phone)
+export const getPatientByNameOrPhone = catchAsyncErrors(async (req, res, next) => {
+  const { name, phone } = req.query;
+  let query = { role: "Patient" };
+  if (name) {
+    // Search by first or last name (case-insensitive)
+    query.$or = [
+      { firstName: { $regex: name, $options: "i" } },
+      { lastName: { $regex: name, $options: "i" } }
+    ];
+  }
+  if (phone) {
+    query.phone = phone;
+  }
+  const patients = await User.find(query);
+  if (!patients || patients.length === 0) {
+    return next(new ErrorHandler("Patient not found!", 404));
+  }
+  res.status(200).json({
+    success: true,
+    patients,
+  });
+});
+
+// Update patient by ID
+export const updatePatientById = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
+  let patient = await User.findOne({ _id: id, role: "Patient" });
+  if (!patient) {
+    return next(new ErrorHandler("Patient not found!", 404));
+  }
+  patient = await User.findByIdAndUpdate(id, req.body, {
+    new: true,
+    runValidators: true,
+    useFindAndModify: false,
+  });
+  res.status(200).json({
+    success: true,
+    patient,
+    message: "Patient updated successfully!",
+  });
+});
+
+// Get doctor by ID
+export const getDoctorById = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
+  const doctor = await User.findOne({ _id: id, role: "Doctor" });
+  if (!doctor) {
+    return next(new ErrorHandler("Doctor not found!", 404));
+  }
+  res.status(200).json({
+    success: true,
+    doctor,
+  });
+});
+
+// Get list of doctors (id and name) for selection
+export const getDoctorsList = catchAsyncErrors(async (req, res, next) => {
+  const doctors = await User.find({ role: "Doctor" }, { firstName: 1, lastName: 1 });
+  const list = doctors.map(d => ({ id: d._id, name: `${d.firstName} ${d.lastName}` }));
+  res.status(200).json({ success: true, doctors: list });
 });
 
 export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
