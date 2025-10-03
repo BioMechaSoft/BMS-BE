@@ -74,7 +74,19 @@ const appointmentSchema = new mongoose.Schema({
           Weight: { type: String },
           Others: { type: String },
         },
-        medicineAdvice: { type: String },
+        medicineAdvice: {
+          type: [
+            {
+              name: { type: String },
+              type: { type: String },
+              dose: { type: String },
+              frequency: { type: String },
+              route: { type: String },
+              duration: { type: String },
+            },
+          ],
+          default: [],
+        },
         advice: { type: String },
       },
     ],

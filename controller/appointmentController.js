@@ -161,7 +161,37 @@ export const updateAppointmentByPatientId = catchAsyncErrors(async (req, res, ne
   // pick latest by appointment_date
   appointments.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
   const latest = appointments[0];
-  const updated = await Appointment.findByIdAndUpdate(latest._id, req.body, {
+  // Normalize incoming payload: ensure result is an array and medicineAdvice is an array of normalized objects
+  const payload = { ...req.body };
+  if (payload.result && Array.isArray(payload.result)) {
+    payload.result = payload.result.map((r) => {
+      const copy = { ...r };
+      // Ensure medicineAdvice is an array
+      if (copy.medicineAdvice && !Array.isArray(copy.medicineAdvice)) {
+        copy.medicineAdvice = [copy.medicineAdvice];
+      }
+      if (!copy.medicineAdvice) copy.medicineAdvice = [];
+
+      // Normalize medicine object keys to: name,type,dose,frequency,route,duration
+      copy.medicineAdvice = copy.medicineAdvice.map((med) => {
+        if (!med || typeof med !== 'object') return med;
+        return {
+          name: med.name || med.Medicine || med.MedicineName || "",
+          type: med.type || med.Type || "",
+          dose: med.dose || med.Dose || "",
+          frequency: med.frequency || med.Frequency || med.Interval || "",
+          route: med.route || med.Rout || med.Route || med.rout || "",
+          duration: med.duration || med.Duration || "",
+          // keep any extra props if present
+          ...med,
+        };
+      });
+
+      return copy;
+    });
+  }
+
+  const updated = await Appointment.findByIdAndUpdate(latest._id, payload, {
     new: true,
     runValidators: true,
     useFindAndModify: false,
