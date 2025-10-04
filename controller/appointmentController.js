@@ -6,8 +6,7 @@ import { User } from "../models/userSchema.js";
 
 export const postAppointment = catchAsyncErrors(async (req, res, next) => {
   const {
-    firstName,
-    lastName,
+    name,
     email,
     phone,
     nic,
@@ -15,37 +14,59 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     gender,
     appointment_date,
     department,
-    doctor_firstName,
-    doctor_lastName,
+    doctorId,
     hasVisited,
     address,
     password // optional, for new patient creation
   } = req.body;
   console.log("Appointment Request Body: ", req.body);
-  if (
-    !firstName ||
-    !lastName ||
-    !email ||
-    !phone ||
-    !nic ||
-    !dob ||
-    !gender ||
-    !appointment_date ||
-    !department ||
-    !doctor_firstName ||
-    !doctor_lastName ||
-    !address
-  ) {
-    return next(new ErrorHandler("Please Fill Full Form!", 400));
+
+  // Only Admin, Doctor, Compounder can create appointments via dashboard
+  const requester = req.user;
+  if (!requester || !["Admin", "Doctor", "Compounder"].includes(requester.role)) {
+    return next(new ErrorHandler('Only dashboard users (Admin/Doctor/Compounder) can create appointments', 403));
   }
 
-  // Find doctor by name, department, and role
-  const doctors = await User.find({
-    firstName: doctor_firstName,
-    lastName: doctor_lastName,
-    role: "Doctor",
-    doctorDepartment: department,
-  });
+  if (!name || !phone || !address || !department) {
+    return next(new ErrorHandler("Please Fill Required Fields: name, phone, department, address", 400));
+  }
+
+  // Determine appointment_date default
+  const apptDate = appointment_date || new Date().toISOString();
+
+  // Determine email default
+  const emailToUse = email || "SohelJavadeveloper@gmail.com";
+
+  // Determine nic/dob/age defaults: if age provided but not dob, compute dob; if dob provided but not age compute age; if nic missing generate from phone
+  let dobDate = dob ? new Date(dob) : null;
+  let ageVal = req.body.age || null;
+  if (!dobDate && ageVal) {
+    // compute approximate dob by subtracting age years
+    const now = new Date();
+    dobDate = new Date(now.getFullYear() - Number(ageVal), now.getMonth(), now.getDate());
+  }
+  if (!ageVal && dobDate) {
+    const diff = Date.now() - dobDate.getTime();
+    ageVal = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  }
+  let nicToUse = nic;
+  if (!nicToUse && phone) {
+    // generate simple pseudo-NIC from phone + timestamp slice to reach 13 chars (not secure)
+    const base = (phone + Date.now().toString()).replace(/\D/g, '');
+    nicToUse = base.slice(0, 13).padEnd(13, '0');
+  }
+
+  // Find doctor(s): if doctorId provided use that, else pick first doctor in the department
+  let chosenDoctor = null;
+  if (doctorId) {
+    chosenDoctor = await User.findOne({ _id: doctorId, role: 'Doctor' });
+  } else {
+    const doctors = await User.find({ role: 'Doctor', doctorDepartment: department });
+    if (!doctors || doctors.length === 0) {
+      return next(new ErrorHandler('Doctor not found for the selected department', 404));
+    }
+    chosenDoctor = doctors[0];
+  }
   if (doctors.length === 0) {
     console.log("Doctors Data : ", doctors);
     return next(new ErrorHandler("Doctor not found", 404));
@@ -53,61 +74,71 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
   if (doctors.length > 1) {
     console.log("Multiple doctors found with same name, selecting the first one by default.", doctors);
   }
-  const doctorId = doctors[0]._id;
+  const doctorIdFinal = chosenDoctor._id;
 
-  let patientId = req.user?._id;
-
-  // If hasVisited is true, check if patient exists, else create
+  let patientId = null;
   if (hasVisited) {
     let patient = await User.findOne({
-      $or: [
-        { nic: nic },
-        { email: email }
-      ],
-      role: "Patient"
+      $or: [ { nic: nicToUse }, { email: emailToUse } ],
+      role: 'Patient'
     });
     if (!patient) {
-      // If password is not provided, set a default password
-      const patientPassword = password || "defaultPassword123";
+      const patientPassword = password || 'defaultPassword123';
+      // split name into first/last
+      const parts = name.split(' ');
+      const first = parts[0];
+      const last = parts.slice(1).join(' ') || parts[0];
       patient = await User.create({
-        firstName,
-        lastName,
-        email,
+        firstName: first,
+        lastName: last,
+        email: emailToUse,
         phone,
-        nic,
-        dob,
-        gender,
+        nic: nicToUse,
+        dob: dobDate,
+        gender: gender || 'Male',
         password: patientPassword,
-        role: "Patient"
+        role: 'Patient',
+        age: ageVal,
       });
     }
     patientId = patient._id;
   }
 
+  // price comes from doctor's consultationFee, booking price may be smaller (20% of fee) or specific
+  const bookingPrice = Math.round((chosenDoctor?.consultationFee || 100) * 0.2);
+
   const appointment = await Appointment.create({
-    firstName,
-    lastName,
-    email,
+    name,
+    email: emailToUse,
     phone,
-    nic,
-    dob,
+    nic: nicToUse,
+    dob: dobDate,
+    age: ageVal,
     gender,
-    appointment_date,
+    appointment_date: apptDate,
     department,
     doctor: {
-      firstName: doctor_firstName,
-      lastName: doctor_lastName,
+      firstName: chosenDoctor.firstName,
+      lastName: chosenDoctor.lastName,
     },
-    hasVisited,
+    hasVisited: !!hasVisited,
     address,
-    doctorId,
+    doctorId: doctorIdFinal,
     patientId,
+    price: bookingPrice,
+    paymentStatus: 'Pending',
+    status: 'Pending'
   });
-  res.status(200).json({
-    success: true,
-    appointment,
-    message: "Appointment Send!",
-  });
+
+  // If client requested invoice download (query param download=true) return a simple HTML invoice as attachment
+  if (req.query && req.query.download === 'true') {
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Appointment Invoice</title></head><body><h1>Appointment Invoice</h1><p>Patient: ${appointment.name}</p><p>Phone: ${appointment.phone}</p><p>Doctor: ${chosenDoctor.firstName} ${chosenDoctor.lastName}</p><p>Department: ${appointment.department}</p><p>Date: ${appointment.appointment_date}</p><p>Price: ${appointment.price} Rs</p><p>Payment Status: ${appointment.paymentStatus}</p></body></html>`;
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', `attachment; filename="appointment-${appointment._id}.html"`);
+    return res.status(200).send(html);
+  }
+
+  res.status(200).json({ success: true, appointment, message: 'Appointment Created!' });
 });
 
 export const getAllAppointments = catchAsyncErrors(async (req, res, next) => {
@@ -144,21 +175,33 @@ export const getAppointmentsByPatientId = catchAsyncErrors(async (req, res, next
 
 // Search appointments by patient name or phone
 export const searchAppointments = catchAsyncErrors(async (req, res, next) => {
-  const { name, phone } = req.query;
-  if (!name && !phone) {
-    return next(new ErrorHandler("Please provide name or phone to search", 400));
+  // Supports flexible search: q (search across name, phone, email, nic), optional department, status
+  const { q, department, status } = req.query;
+  if (!q && !department && !status) {
+    return next(new ErrorHandler("Please provide search query or filters", 400));
   }
+
   const query = {};
-  if (name) {
-    const regex = new RegExp(name, "i");
-    query.$or = [{ firstName: regex }, { lastName: regex }];
+  const andClauses = [];
+
+  if (q) {
+    const regex = new RegExp(q, 'i');
+    andClauses.push({ $or: [ { name: regex }, { phone: regex }, { email: regex }, { nic: regex } ] });
   }
-  if (phone) {
-    query.phone = phone;
+
+  if (department) {
+    andClauses.push({ department });
   }
+
+  if (status) {
+    andClauses.push({ status });
+  }
+
+  if (andClauses.length > 0) query.$and = andClauses;
+
   const appointments = await Appointment.find(query);
   if (!appointments || appointments.length === 0) {
-    return next(new ErrorHandler("No appointments found for given search", 404));
+    return next(new ErrorHandler("No appointments found for given search/filters", 404));
   }
   res.status(200).json({ success: true, appointments });
 });

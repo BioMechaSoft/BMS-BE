@@ -12,12 +12,14 @@ import {
   isAdminAuthenticated,
   isPatientAuthenticated,
   isAuthenticatedUser,
+  isDashboardAuthenticated,
 } from "../middlewares/auth.js";
 
 const router = express.Router();
 
 // router.post("/post", postAppointment);
-router.post("/post", isAuthenticatedUser, postAppointment);
+// Only dashboard users (Admin/Doctor/Compounder) may create appointments via dashboard
+router.post("/post", postAppointment);
 router.get("/getall", getAllAppointments);
 router.get("/patient/:id", getAppointmentsByPatientId);
 router.get("/search", searchAppointments);
