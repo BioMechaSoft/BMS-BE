@@ -143,6 +143,12 @@ export const addNewCompounder = catchAsyncErrors(async (req, res, next) => {
   }
 
   let doctorIds = Array.isArray(assignedDoctors) ? assignedDoctors : [];
+  // If requester is a Doctor (non-Admin), they may only assign the compounder to themselves
+  const requester = req.user;
+  if (requester && requester.role === 'Doctor') {
+    // Only allow assignment to the requesting doctor
+    doctorIds = [requester._id.toString()];
+  }
   if (doctorIds.length > 0) {
     const doctors = await User.find({ _id: { $in: doctorIds }, role: 'Doctor' });
     if (doctors.length !== doctorIds.length) {
@@ -157,6 +163,34 @@ export const addNewCompounder = catchAsyncErrors(async (req, res, next) => {
   }
 
   res.status(200).json({ success: true, message: 'New Compounder Registered', compounder });
+});
+
+// Admin-only: list all users with roles (for Role Settings UI)
+export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
+  const users = await User.find({}, { password: 0 }).sort({ role: 1, firstName: 1 });
+  res.status(200).json({ success: true, users });
+});
+
+// Admin-only: update a user's role (and clean up role-specific fields as needed)
+export const updateUserRole = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
+  const { role } = req.body;
+  const allowedRoles = ['Admin', 'Doctor', 'Compounder', 'Patient'];
+  if (!allowedRoles.includes(role)) {
+    return next(new ErrorHandler('Invalid role specified', 400));
+  }
+  const user = await User.findById(id);
+  if (!user) return next(new ErrorHandler('User not found', 404));
+
+  // If demoting a Doctor, remove any compounders reference from doctors list
+  if (user.role === 'Doctor' && role !== 'Doctor') {
+    await User.updateMany({ compounders: user._id }, { $pull: { compounders: user._id } });
+  }
+
+  // If changing to Doctor, ensure doctor-specific fields exist (no-op here but placeholder)
+  user.role = role;
+  await user.save();
+  res.status(200).json({ success: true, message: 'User role updated', user });
 });
 
 export const addNewDoctor = catchAsyncErrors(async (req, res, next) => {
@@ -322,6 +356,21 @@ export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
     success: true,
     user,
   });
+});
+
+// Return currently authenticated doctor (requires dashboard token and role Doctor)
+export const getDoctorMe = catchAsyncErrors(async (req, res, next) => {
+  const user = req.user;
+  if (!user) return next(new ErrorHandler('User not found', 404));
+  if (user.role !== 'Doctor') return next(new ErrorHandler('Not a doctor', 403));
+  res.status(200).json({ success: true, doctor: user });
+});
+
+// Return dashboard user (Admin or Doctor)
+export const getDashboardMe = catchAsyncErrors(async (req, res, next) => {
+  const user = req.user;
+  if (!user) return next(new ErrorHandler('User not found', 404));
+  res.status(200).json({ success: true, user });
 });
 
 // Logout function for dashboard admin

@@ -14,6 +14,10 @@ import {
   updatePatientById,
   getDoctorById,
   getDoctorsList,
+  getDoctorMe,
+  getDashboardMe,
+  getAllUsers,
+  updateUserRole,
 } from "../controller/userController.js";
 import {
   isAdminAuthenticated,
@@ -25,10 +29,19 @@ const router = express.Router();
 
 router.post("/patient/register", patientRegister);
 router.post("/login", login);
-router.post("/admin/addnew", addNewAdmin);
+// Only Admins can create other Admins or Doctors
+router.post("/admin/addnew", isAdminAuthenticated, addNewAdmin);
+// Compounder creation allowed for Dashboard users but controller will enforce doctor-assignment rules
 router.post('/compounder/addnew', isDashboardAuthenticated, addNewCompounder);
-router.post("/doctor/addnew", addNewDoctor);
+// Only Admin can create doctors
+router.post("/doctor/addnew", isAdminAuthenticated, addNewDoctor);
 router.get("/doctors", getAllDoctors);
+router.get('/doctor/me', isDashboardAuthenticated, getDoctorMe);
+router.get('/dashboard/me', isDashboardAuthenticated, getDashboardMe);
+
+// Role management (Admin only)
+router.get('/all', isAdminAuthenticated, getAllUsers);
+router.put('/role/:id', isAdminAuthenticated, updateUserRole);
 router.get("/patient/me", isPatientAuthenticated, getUserDetails);
 router.get("/admin/me",isAdminAuthenticated, getUserDetails);
 router.get("/patient/logout", logoutPatient);

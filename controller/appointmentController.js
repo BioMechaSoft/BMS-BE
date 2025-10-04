@@ -111,7 +111,13 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
 });
 
 export const getAllAppointments = catchAsyncErrors(async (req, res, next) => {
-  const appointments = await Appointment.find();
+  // If requester is a Doctor, limit to appointments where doctorId matches
+  const requester = req.user;
+  let query = {};
+  if (requester && requester.role === 'Doctor') {
+    query.doctorId = requester._id;
+  }
+  const appointments = await Appointment.find(query);
   res.status(200).json({
     success: true,
     appointments,
@@ -121,7 +127,12 @@ export const getAllAppointments = catchAsyncErrors(async (req, res, next) => {
 // Get appointments by patient ID
 export const getAppointmentsByPatientId = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
-  const appointments = await Appointment.find({ patientId: id });
+  const requester = req.user;
+  const query = { patientId: id };
+  if (requester && requester.role === 'Doctor') {
+    query.doctorId = requester._id;
+  }
+  const appointments = await Appointment.find(query);
   if (!appointments || appointments.length === 0) {
     return next(new ErrorHandler("No appointments found for this patient!", 404));
   }
