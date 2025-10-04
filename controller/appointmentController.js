@@ -1,6 +1,7 @@
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../middlewares/error.js";
 import { Appointment } from "../models/appointmentSchema.js";
+import { Message } from "../models/messageSchema.js";
 import { User } from "../models/userSchema.js";
 
 export const postAppointment = catchAsyncErrors(async (req, res, next) => {
@@ -206,11 +207,24 @@ export const updateAppointmentStatus = catchAsyncErrors(
     if (!appointment) {
       return next(new ErrorHandler("Appointment not found!", 404));
     }
+    const before = await Appointment.findById(id);
     appointment = await Appointment.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
       useFindAndModify: false,
     });
+    // create a message to notify patient when status changes
+    try {
+      const prevStatus = before?.status;
+      const newStatus = appointment?.status;
+      if (prevStatus !== newStatus) {
+        const text = `Your appointment scheduled on ${appointment.appointment_date} is now ${newStatus}.`;
+        await Message.create({ firstName: appointment.firstName, lastName: appointment.lastName, email: appointment.email, phone: appointment.phone, message: text, sentAt: new Date() });
+      }
+    } catch (e) {
+      console.warn('Failed to create notification message:', e.message);
+    }
++
     res.status(200).json({
       success: true,
       message: "Appointment Status Updated!",

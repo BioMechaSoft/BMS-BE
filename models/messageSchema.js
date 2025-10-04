@@ -28,6 +28,19 @@ const messageSchema = new mongoose.Schema({
     required: true,
     minLength: [10, "Message Must Contain At Least 10 Characters!"],
   },
-});
+  // admin metadata
+  read: {
+    type: Boolean,
+    default: false,
+  },
+  markedForDeletion: {
+    type: Boolean,
+    default: false,
+  },
+  sentAt: {
+    type: Date,
+    default: Date.now,
+  },
+}, { timestamps: true });
 
 export const Message = mongoose.model("Message", messageSchema);

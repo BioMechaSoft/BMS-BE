@@ -2,6 +2,7 @@ import express from "express";
 import {
   addNewAdmin,
   addNewDoctor,
+  addNewCompounder,
   getAllDoctors,
   getUserDetails,
   login,
@@ -17,6 +18,7 @@ import {
 import {
   isAdminAuthenticated,
   isPatientAuthenticated,
+  isDashboardAuthenticated,
 } from "../middlewares/auth.js";
 
 const router = express.Router();
@@ -24,6 +26,7 @@ const router = express.Router();
 router.post("/patient/register", patientRegister);
 router.post("/login", login);
 router.post("/admin/addnew", addNewAdmin);
+router.post('/compounder/addnew', isDashboardAuthenticated, addNewCompounder);
 router.post("/doctor/addnew", addNewDoctor);
 router.get("/doctors", getAllDoctors);
 router.get("/patient/me", isPatientAuthenticated, getUserDetails);

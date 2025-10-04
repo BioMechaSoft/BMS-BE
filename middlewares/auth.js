@@ -47,6 +47,21 @@ export const isAdminAuthenticated = catchAsyncErrors(
   }
 );
 
+// Authenticate dashboard token but do not require Admin role
+export const isDashboardAuthenticated = catchAsyncErrors(async (req, res, next) => {
+  const token = req.cookies.adminToken;
+  if (!token) {
+    return next(new ErrorHandler('Dashboard User is not authenticated!', 400));
+  }
+  const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+  req.user = await User.findById(decoded.id);
+  if (!req.user) {
+    return next(new ErrorHandler('User not found!', 404));
+  }
+  // allow any dashboard role (Admin or Doctor) to proceed
+  next();
+});
+
 // Middleware to authenticate frontend users
 export const isPatientAuthenticated = catchAsyncErrors(
   async (req, res, next) => {

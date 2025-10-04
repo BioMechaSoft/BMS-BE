@@ -1,6 +1,7 @@
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../middlewares/error.js";
 import { MedicalAdvice } from "../models/medicalAdviceSchema.js";
+import { Message } from "../models/messageSchema.js";
 
 export const createMedicalAdvice = catchAsyncErrors(async (req, res, next) => {
   const { name, symptoms, type, route, desese_description } = req.body;
@@ -14,12 +15,23 @@ export const createMedicalAdvice = catchAsyncErrors(async (req, res, next) => {
     desese_description,
   });
 
+  // create an internal message/log for this change
+  try { await Message.create({ firstName: 'System', lastName: '', email: 'system@local', phone: '', message: `Medicine added: ${advice.name}`, sentAt: new Date() }); } catch(e){ }
+
   res.status(201).json({ success: true, advice });
 });
 
 export const getAllMedicalAdvice = catchAsyncErrors(async (req, res, next) => {
-  const advices = await MedicalAdvice.find();
-  res.status(200).json({ success: true, advices });
+  // pagination: ?page=1&limit=10
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
+  const total = await MedicalAdvice.countDocuments();
+  const advices = await MedicalAdvice.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
+  const totalPages = Math.ceil(total / limit) || 0;
+
+  res.status(200).json({ success: true, advices, total, page, totalPages });
 });
 
 export const getMedicalAdviceById = catchAsyncErrors(async (req, res, next) => {
@@ -49,6 +61,7 @@ export const deleteMedicalAdvice = catchAsyncErrors(async (req, res, next) => {
   const advice = await MedicalAdvice.findById(id);
   if (!advice) return next(new ErrorHandler("Medical advice not found", 404));
   await advice.deleteOne();
+  try { await Message.create({ firstName: 'System', lastName: '', email: 'system@local', phone: '', message: `Medicine deleted: ${advice.name}`, sentAt: new Date() }); } catch(e){ }
   res.status(200).json({ success: true, message: "Deleted!" });
 });
 
@@ -56,7 +69,6 @@ export const deleteMedicalAdvice = catchAsyncErrors(async (req, res, next) => {
 export const searchMedicalAdvice = catchAsyncErrors(async (req, res, next) => {
   const { q, name, symptom, type, route } = req.query;
   const query = {};
-
   if (q) {
     const regex = new RegExp(q, "i");
     query.$or = [
@@ -72,9 +84,15 @@ export const searchMedicalAdvice = catchAsyncErrors(async (req, res, next) => {
   if (type) query.type = new RegExp(type, "i");
   if (route) query.route = new RegExp(route, "i");
 
-  const advices = await MedicalAdvice.find(query);
-  if (!advices || advices.length === 0) return next(new ErrorHandler("No records found", 404));
-  res.status(200).json({ success: true, advices });
+  // pagination support for search as well
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+  const total = await MedicalAdvice.countDocuments(query);
+  const advices = await MedicalAdvice.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit);
+  const totalPages = Math.ceil(total / limit) || 0;
+  // always return a 200 with results and pagination metadata (empty array if none)
+  res.status(200).json({ success: true, advices, total, page, totalPages });
 });
 
 // Bulk insert: accepts an array of advice objects in request body

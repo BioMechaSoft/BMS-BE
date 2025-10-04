@@ -49,11 +49,15 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, "User Role Required!"],
-    enum: ["Patient", "Doctor", "Admin"],
+    enum: ["Patient", "Doctor", "Admin", "Compounder"],
   },
   doctorDepartment:{
     type: String,
   },
+  // If this user is a Doctor, store assigned compounder user ids
+  compounders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // If this user is a Compounder, store assigned doctor ids
+  assignedDoctors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 });
 
 userSchema.pre("save", async function (next) {

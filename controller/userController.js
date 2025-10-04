@@ -66,26 +66,55 @@ export const login = catchAsyncErrors(async (req, res, next) => {
 });
 
 export const addNewAdmin = catchAsyncErrors(async (req, res, next) => {
-  const { firstName, lastName, email, phone, nic, dob, gender, password } =
-    req.body;
-  if (
-    !firstName ||
-    !lastName ||
-    !email ||
-    !phone ||
-    !nic ||
-    !dob ||
-    !gender ||
-    !password
-  ) {
+  const { firstName, lastName, email, phone, nic, dob, gender, password, role, assignedDoctors } = req.body;
+
+  if (!firstName || !lastName || !email || !phone || !nic || !dob || !gender || !password) {
     return next(new ErrorHandler("Please Fill Full Form!", 400));
   }
 
   const isRegistered = await User.findOne({ email });
   if (isRegistered) {
-    return next(new ErrorHandler("Admin With This Email Already Exists!", 400));
+    return next(new ErrorHandler("User With This Email Already Exists!", 400));
   }
 
+  // If creating a compounder, validate assignedDoctors and then create compounder and link to doctors
+  if (role === 'Compounder') {
+    // assignedDoctors must be an array of doctor IDs (optional)
+    let doctorIds = Array.isArray(assignedDoctors) ? assignedDoctors : [];
+
+    // Validate doctors exist and have role Doctor
+    if (doctorIds.length > 0) {
+      const doctors = await User.find({ _id: { $in: doctorIds }, role: 'Doctor' });
+      if (doctors.length !== doctorIds.length) {
+        return next(new ErrorHandler('One or more assignedDoctors are invalid', 400));
+      }
+    }
+
+    const compounder = await User.create({
+      firstName,
+      lastName,
+      email,
+      phone,
+      nic,
+      dob,
+      gender,
+      password,
+      role: 'Compounder',
+      assignedDoctors: doctorIds,
+    });
+
+    // Update each doctor to include this compounder in their compounders list
+    if (doctorIds.length > 0) {
+      await User.updateMany(
+        { _id: { $in: doctorIds } },
+        { $addToSet: { compounders: compounder._id } }
+      );
+    }
+
+    return res.status(200).json({ success: true, message: 'New Compounder Registered', compounder });
+  }
+
+  // Default: create Admin
   const admin = await User.create({
     firstName,
     lastName,
@@ -95,13 +124,39 @@ export const addNewAdmin = catchAsyncErrors(async (req, res, next) => {
     dob,
     gender,
     password,
-    role: "Admin",
+    role: 'Admin',
   });
-  res.status(200).json({
-    success: true,
-    message: "New Admin Registered",
-    admin,
-  });
+  res.status(200).json({ success: true, message: 'New Admin Registered', admin });
+});
+
+// Dedicated compounder creation handler (for dashboard users: Admins and Doctors)
+export const addNewCompounder = catchAsyncErrors(async (req, res, next) => {
+  const { firstName, lastName, email, phone, nic, dob, gender, password, assignedDoctors } = req.body;
+
+  if (!firstName || !lastName || !email || !phone || !nic || !dob || !gender || !password) {
+    return next(new ErrorHandler('Please Fill Full Form!', 400));
+  }
+
+  const isRegistered = await User.findOne({ email });
+  if (isRegistered) {
+    return next(new ErrorHandler('User With This Email Already Exists!', 400));
+  }
+
+  let doctorIds = Array.isArray(assignedDoctors) ? assignedDoctors : [];
+  if (doctorIds.length > 0) {
+    const doctors = await User.find({ _id: { $in: doctorIds }, role: 'Doctor' });
+    if (doctors.length !== doctorIds.length) {
+      return next(new ErrorHandler('One or more assignedDoctors are invalid', 400));
+    }
+  }
+
+  const compounder = await User.create({ firstName, lastName, email, phone, nic, dob, gender, password, role: 'Compounder', assignedDoctors: doctorIds });
+
+  if (doctorIds.length > 0) {
+    await User.updateMany({ _id: { $in: doctorIds } }, { $addToSet: { compounders: compounder._id } });
+  }
+
+  res.status(200).json({ success: true, message: 'New Compounder Registered', compounder });
 });
 
 export const addNewDoctor = catchAsyncErrors(async (req, res, next) => {
@@ -181,11 +236,8 @@ export const addNewDoctor = catchAsyncErrors(async (req, res, next) => {
 });
 
 export const getAllDoctors = catchAsyncErrors(async (req, res, next) => {
-  const doctors = await User.find({ role: "Doctor" });
-  res.status(200).json({
-    success: true,
-    doctors,
-  });
+  const doctors = await User.find({ role: 'Doctor' }).populate({ path: 'compounders', select: 'firstName lastName email' });
+  res.status(200).json({ success: true, doctors });
 });
 
 // Get patient by ID
