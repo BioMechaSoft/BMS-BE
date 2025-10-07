@@ -18,5 +18,7 @@ export const generateToken = (user, message, statusCode, res) => {
       user,
       token,
     });
+
+  console.log(`Token generated and sent in cookie: ${adminToken}  ${patientToken}`); 
 };
 

@@ -28,7 +28,7 @@ import {
 const router = express.Router();
 
 router.post("/patient/register", patientRegister);
-router.post("/login", login);
+router.post("/login", isAdminAuthenticated, login);
 // Only Admins can create other Admins or Doctors
 router.post("/admin/addnew", isAdminAuthenticated, addNewAdmin);
 // Compounder creation allowed for Dashboard users but controller will enforce doctor-assignment rules
@@ -37,7 +37,7 @@ router.post('/compounder/addnew', isDashboardAuthenticated, addNewCompounder);
 router.post("/doctor/addnew", isAdminAuthenticated, addNewDoctor);
 router.get("/doctors", getAllDoctors);
 router.get('/doctor/me', isDashboardAuthenticated, getDoctorMe);
-router.get('/dashboard/me', isDashboardAuthenticated, getDashboardMe);
+router.get('/dashboard/me', getDashboardMe);
 
 // Role management (Admin only)
 router.get('/all', isAdminAuthenticated, getAllUsers);
