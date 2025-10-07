@@ -17,15 +17,18 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     doctorId,
     hasVisited,
     address,
-    password // optional, for new patient creation
+    password
+    // optional, for new patient creation
   } = req.body;
   console.log("Appointment Request Body: ", req.body);
 
-  // Only Admin, Doctor, Compounder can create appointments via dashboard
-  const requester = req.user;
-  if (!requester || !["Admin", "Doctor", "Compounder"].includes(requester.role)) {
-    return next(new ErrorHandler('Only dashboard users (Admin/Doctor/Compounder) can create appointments', 403));
+  // Prefer requester from authenticated middleware (req.user). Fall back to any user sent in body.
+  const requester = req.user || req.body.user;
+  const requesterRole = requester?.role || 'Guest';
+  if (!['Admin', 'Doctor', 'Compounder'].includes(requesterRole)) {
+    return next(new ErrorHandler("Only Admin, Doctor or Compounder can create appointments", 403));
   }
+  
 
   if (!name || !phone || !address || !department) {
     return next(new ErrorHandler("Please Fill Required Fields: name, phone, department, address", 400));
@@ -58,21 +61,21 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
 
   // Find doctor(s): if doctorId provided use that, else pick first doctor in the department
   let chosenDoctor = null;
+  let doctors = [];
   if (doctorId) {
     chosenDoctor = await User.findOne({ _id: doctorId, role: 'Doctor' });
+    if (!chosenDoctor) {
+      return next(new ErrorHandler('Doctor not found for the provided id', 404));
+    }
   } else {
-    const doctors = await User.find({ role: 'Doctor', doctorDepartment: department });
+    doctors = await User.find({ role: 'Doctor', doctorDepartment: department });
     if (!doctors || doctors.length === 0) {
       return next(new ErrorHandler('Doctor not found for the selected department', 404));
     }
+    if (doctors.length > 1) {
+      console.log("Multiple doctors found with same name, selecting the first one by default.", doctors);
+    }
     chosenDoctor = doctors[0];
-  }
-  if (doctors.length === 0) {
-    console.log("Doctors Data : ", doctors);
-    return next(new ErrorHandler("Doctor not found", 404));
-  }
-  if (doctors.length > 1) {
-    console.log("Multiple doctors found with same name, selecting the first one by default.", doctors);
   }
   const doctorIdFinal = chosenDoctor._id;
 

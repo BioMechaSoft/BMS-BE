@@ -21,6 +21,8 @@ app.use(
       // Allow requests with no origin (like mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
       if (frontendOrigins.indexOf(origin) !== -1) return callback(null, true);
+      // Log blocked origin for easier debugging
+      console.warn('CORS blocked origin:', origin);
       return callback(new Error('CORS policy: This origin is not allowed - ' + origin));
     },
     methods: ["GET", "POST", "DELETE", "PUT", "OPTIONS"],
@@ -42,6 +44,18 @@ app.use("/api/v1/message", messageRouter);
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/appointment", appointmentRouter);
 app.use("/api/v1/medical", medicalAdviceRouter);
+
+// Debug endpoint to inspect request cookies, headers and authenticated user.
+// This is intentionally only enabled when not in production to avoid exposing internals.
+app.get('/debug/auth', (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(404).json({ success: false });
+  return res.status(200).json({
+    success: true,
+    headers: req.headers,
+    cookies: req.cookies || {},
+    user: req.user || null,
+  });
+});
 
 dbConnection();
 
