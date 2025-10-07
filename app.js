@@ -13,10 +13,17 @@ import medicalAdviceRouter from "./router/medicalAdviceRouter.js";
 const app = express();
 config({ path: "./.env" });
 
+// Build an explicit whitelist for CORS. Do NOT use '*' when credentials: true.
+const frontendOrigins = [process.env.FRONTEND_URL_ONE, process.env.FRONTEND_URL_TWO, process.env.FRONTEND_URL_PROD].filter(Boolean);
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL_ONE, process.env.FRONTEND_URL_TWO, process.env.FRONTEND_URL_PROD,"*"],
-    method: ["GET", "POST", "DELETE", "PUT"],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (frontendOrigins.indexOf(origin) !== -1) return callback(null, true);
+      return callback(new Error('CORS policy: This origin is not allowed - ' + origin));
+    },
+    methods: ["GET", "POST", "DELETE", "PUT", "OPTIONS"],
     credentials: true,
   })
 );

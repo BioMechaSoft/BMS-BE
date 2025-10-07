@@ -4,19 +4,24 @@ export const generateToken = (user, message, statusCode, res) => {
   // Dashboard users (Admin, Doctor and Compounder) receive the adminToken; patients receive patientToken
   const cookieName = (user.role === 'Admin' || user.role === 'Doctor' || user.role === 'Compounder') ? 'adminToken' : 'patientToken';
 
-  res
-    .status(statusCode)
-    .cookie(cookieName, token, {
-      expires: new Date(
-        Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
-      ),
-      httpOnly: true,
-    })
-    .json({
-      success: true,
-      message,
-      user,
-      token,
-    });
+  // Cookie options: set secure & sameSite for cross-site cookies when in production (Render uses HTTPS)
+  const cookieOptions = {
+    expires: new Date(Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
+    httpOnly: true,
+  };
+
+  if (process.env.NODE_ENV === 'production') {
+    cookieOptions.secure = true; // send only over HTTPS
+    // Allow cross-site cookie in production when frontend is on a different origin
+    cookieOptions.sameSite = 'none';
+  }
+
+  res.status(statusCode).cookie(cookieName, token, cookieOptions).json({
+    success: true,
+    message,
+    user,
+    // Note: token is returned here for convenience, but since cookie is httpOnly clients shouldn't need it.
+    token,
+  });
 };
 
