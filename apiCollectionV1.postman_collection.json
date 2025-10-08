@@ -24,7 +24,7 @@
               "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Test@123\",\n  \"age\": 30,\n  \"gender\": \"male\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/api/v1/user/patient/register",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/user/patient/register",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -55,7 +55,7 @@
               "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Test@123\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/api/v1/user/login",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/user/login",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -85,7 +85,7 @@
               "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin@123\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/api/v1/user/admin/addnew",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/user/admin/addnew",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -116,7 +116,7 @@
               "raw": "{\n  \"name\": \"Dr. Smith\",\n  \"email\": \"drsmith@example.com\",\n  \"password\": \"Doctor@123\",\n  \"specialization\": \"Cardiology\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/api/v1/user/doctor/addnew",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/user/doctor/addnew",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -137,7 +137,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:5000/api/v1/user/doctors",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/user/doctors",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -157,7 +157,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:5000/api/v1/user/patient/me",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/user/patient/me",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -178,7 +178,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:5000/api/v1/user/admin/me",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/user/admin/me",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -199,7 +199,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:5000/api/v1/user/patient/logout",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/user/patient/logout",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -220,7 +220,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:5000/api/v1/user/admin/logout",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/user/admin/logout",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -256,7 +256,7 @@
               "raw": "{\n  \"doctorId\": \"doctorObjectId\",\n  \"date\": \"2025-10-01\",\n  \"time\": \"10:00\",\n  \"reason\": \"Regular checkup\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/api/v1/appointment/post",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/appointment/post",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -276,7 +276,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:5000/api/v1/appointment/getall",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/appointment/getall",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -306,7 +306,7 @@
               "raw": "{\n  \"status\": \"approved\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000//api/v1/appointment/patient/update/:id",
+              "raw": "https://pathologylab-backend-new-project.onrender.com//api/v1/appointment/patient/update/:id",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -327,7 +327,7 @@
           "request": {
             "method": "DELETE",
             "url": {
-              "raw": "http://localhost:5000/api/v1/appointment/delete/:id",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/appointment/delete/:id",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -363,7 +363,7 @@
               "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"message\": \"I would like to know more about your services.\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/api/v1/message/send",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/message/send",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -383,7 +383,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "http://localhost:5000/api/v1/message/getall",
+              "raw": "https://pathologylab-backend-new-project.onrender.com/api/v1/message/getall",
               "protocol": "http",
               "host": [
                 "localhost"

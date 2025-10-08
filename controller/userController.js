@@ -42,6 +42,7 @@ export const patientRegister = catchAsyncErrors(async (req, res, next) => {
 
 export const login = catchAsyncErrors(async (req, res, next) => {
   const { email, password, role } = req.body;
+  console.log('Login attempt:', { email, role });
   if (!email || !password || !role) {
     return next(new ErrorHandler("Please Fill Email, Password and Role!", 400));
   }
@@ -364,6 +365,7 @@ export const getDoctorMe = catchAsyncErrors(async (req, res, next) => {
 // Return dashboard user (Admin or Doctor)
 export const getDashboardMe = catchAsyncErrors(async (req, res, next) => {
   const user = req.user;
+  console.log('Dashboard user:', user);
   if (!user) return next(new ErrorHandler('User not found', 404));
   res.status(200).json({ success: true, user });
 });

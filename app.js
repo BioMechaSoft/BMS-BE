@@ -14,7 +14,8 @@ const app = express();
 config({ path: "./.env" });
 
 // Build an explicit whitelist for CORS. Do NOT use '*' when credentials: true.
-const frontendOrigins = [process.env.FRONTEND_URL_ONE, process.env.FRONTEND_URL_TWO, process.env.FRONTEND_URL_PROD].filter(Boolean);
+const frontendOrigins = [process.env.FRONTEND_URL_ONE, process.env.FRONTEND_URL_TWO, process.env.FRONTEND_URL_PROD, process.env.FRONTEND_URL_PROD_TWO
+].filter(Boolean);
 app.use(
   cors({
     origin: function (origin, callback) {
