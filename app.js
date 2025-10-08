@@ -14,7 +14,13 @@ const app = express();
 config({ path: "./.env" });
 
 // Build an explicit whitelist for CORS. Do NOT use '*' when credentials: true.
-const frontendOrigins = [process.env.FRONTEND_URL_ONE, process.env.FRONTEND_URL_TWO, process.env.FRONTEND_URL_PROD, process.env.FRONTEND_URL_PROD_TWO
+// Add common local dev origins so the dashboard and frontend can talk to the API
+// without extra env configuration during development.
+const frontendOrigins = [
+  process.env.FRONTEND_URL_ONE,
+  process.env.FRONTEND_URL_TWO,
+  process.env.FRONTEND_URL_PROD,
+  process.env.FRONTEND_URL_PROD_TWO,
 ].filter(Boolean);
 app.use(
   cors({

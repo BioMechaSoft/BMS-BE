@@ -37,7 +37,7 @@ router.post('/compounder/addnew', isDashboardAuthenticated, addNewCompounder);
 router.post("/doctor/addnew", isAdminAuthenticated, addNewDoctor);
 router.get("/doctors", getAllDoctors);
 router.get('/doctor/me', isDashboardAuthenticated, getDoctorMe);
-router.get('/dashboard/me', getDashboardMe);
+router.get('/dashboard/me',isDashboardAuthenticated, getDashboardMe);
 
 // Role management (Admin only)
 router.get('/all', isAdminAuthenticated, getAllUsers);
