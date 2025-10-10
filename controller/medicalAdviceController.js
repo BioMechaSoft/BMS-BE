@@ -1,3 +1,20 @@
+// Get all unique symptoms, names, and medicine names as a single list
+export const getAllSuggestions = catchAsyncErrors(async (req, res, next) => {
+  const advices = await MedicalAdvice.find({}, { name: 1, symptoms: 1, type: 1, route: 1, dose: 1, frequency: 1, duration: 1 });
+  let suggestions = [];
+  advices.forEach(advice => {
+    if (advice.name) suggestions.push(advice.name);
+    if (Array.isArray(advice.symptoms)) suggestions.push(...advice.symptoms);
+    if (advice.type) suggestions.push(advice.type);
+    if (advice.route) suggestions.push(advice.route);
+    if (advice.dose) suggestions.push(advice.dose);
+    if (advice.frequency) suggestions.push(advice.frequency);
+    if (advice.duration) suggestions.push(advice.duration);
+  });
+  // Clean up, deduplicate, and sort
+  suggestions = Array.from(new Set(suggestions.filter(Boolean).map(s => s.trim()))).sort();
+  res.status(200).json({ success: true, suggestions });
+});
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../middlewares/error.js";
 import { MedicalAdvice } from "../models/medicalAdviceSchema.js";
