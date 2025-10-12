@@ -18,6 +18,9 @@ import {
   getDashboardMe,
   getAllUsers,
   updateUserRole,
+  deleteUserById,
+  updateUserById,
+  searchDoctor,
 } from "../controller/userController.js";
 import {
   isAdminAuthenticated,
@@ -40,8 +43,11 @@ router.get('/doctor/me', isDashboardAuthenticated, getDoctorMe);
 router.get('/dashboard/me',isDashboardAuthenticated, getDashboardMe);
 
 // Role management (Admin only)
+
 router.get('/all', isAdminAuthenticated, getAllUsers);
 router.put('/role/:id', isAdminAuthenticated, updateUserRole);
+router.put('/user/:id', isAdminAuthenticated, updateUserById);
+router.delete('/user/:id', isAdminAuthenticated, deleteUserById);
 router.get("/patient/me", isPatientAuthenticated, getUserDetails);
 router.get("/admin/me",isAdminAuthenticated, getUserDetails);
 router.get("/patient/logout", logoutPatient);
@@ -51,6 +57,9 @@ router.get("/admin/logout", logoutAdmin);
 router.get("/patient/:id", getPatientById);
 router.get("/patient/search", getPatientByNameOrPhone);
 router.put("/patient/:id", updatePatientById);
+
+// Doctor search by name, phone, department, NIC (regex)
+router.get("/doctor/search", isAdminAuthenticated,searchDoctor);
 router.get("/doctor/:id", getDoctorById);
 router.get("/doctors/list", getDoctorsList);
 
