@@ -19,6 +19,18 @@ const medicalAdviceSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    dose: {
+      type: String,
+      trim: true,
+    },
+    frequency: {
+      type: String,
+      trim: true,
+    },
+    duration: {
+      type: String,
+      trim: true,
+    },
     desese_description: {
       type: String,
       trim: true,
