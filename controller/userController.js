@@ -61,7 +61,11 @@ export const login = catchAsyncErrors(async (req, res, next) => {
   }
   generateToken(user, "Login Successfully!", 201, res);
 });
-
+// Get all compounders
+export const getAllCompounders = catchAsyncErrors(async (req, res, next) => {
+  const compounders = await User.find({ role: 'Compounder' }).select('firstName lastName email _id');
+  res.status(200).json({ success: true, compounders });
+});
 export const addNewAdmin = catchAsyncErrors(async (req, res, next) => {
   const { firstName, lastName, email, phone, nic, dob, gender, password, role, assignedDoctors } = req.body;
 
@@ -200,12 +204,16 @@ export const updateUserRole = catchAsyncErrors(async (req, res, next) => {
   });
 
   // Delete user by ID (Admin only)
-  export const deleteUserById = catchAsyncErrors(async (req, res, next) => {
-    const { id } = req.params;
-    const user = await User.findByIdAndDelete(id);
-    if (!user) return next(new ErrorHandler('User not found', 404));
-    res.status(200).json({ success: true, message: 'User deleted successfully' });
-  });
+    export const deleteUserById = catchAsyncErrors(async (req, res, next) => {
+      const { id } = req.params;
+      const user = await User.findByIdAndDelete(id);
+      if (!user) return next(new ErrorHandler('User not found', 404));
+      // If user is a patient, delete all their appointments
+      if (user.role === 'Patient') {
+        await Appointment.deleteMany({ patientId: user._id });
+      }
+      res.status(200).json({ success: true, message: 'User deleted successfully' });
+    });
 
 export const addNewDoctor = catchAsyncErrors(async (req, res, next) => {
   // if (!req.files || Object.keys(req.files).length === 0) {

@@ -7,6 +7,7 @@ import {
   getUserDetails,
   login,
   logoutAdmin,
+    getAllCompounders,
   logoutPatient,
   patientRegister,
   getPatientById,
@@ -27,7 +28,6 @@ import {
   isPatientAuthenticated,
   isDashboardAuthenticated,
 } from "../middlewares/auth.js";
-
 const router = express.Router();
 
 router.post("/patient/register", patientRegister);
@@ -62,5 +62,7 @@ router.put("/patient/:id", updatePatientById);
 router.get("/doctor/search", isAdminAuthenticated,searchDoctor);
 router.get("/doctor/:id", getDoctorById);
 router.get("/doctors/list", getDoctorsList);
+  // Get all compounders (for admin dropdown)
+  router.get("/compounders", isAdminAuthenticated, getAllCompounders);
 
 export default router;
