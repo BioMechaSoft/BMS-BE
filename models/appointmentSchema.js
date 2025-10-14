@@ -11,7 +11,7 @@ const appointmentSchema = new mongoose.Schema({
   email: {
     type: String,
     required: false,
-    validate: [v => !v || validator.isEmail(v), "Provide A Valid Email!"],
+    // validate: [v => !v || validator.isEmail(v), "Provide A Valid Email!"],
     default: "SohelJavadeveloper@gmail.com",
   },
   age: {
