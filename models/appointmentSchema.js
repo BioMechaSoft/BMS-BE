@@ -67,6 +67,10 @@ const appointmentSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  booked_by: {
+    type: mongoose.Schema.ObjectId,
+    ref: "User",
+  },
   result: {
     type: [
       {

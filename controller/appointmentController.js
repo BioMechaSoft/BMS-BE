@@ -128,6 +128,7 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     },
     hasVisited: !!hasVisited,
     address,
+    booked_by: requester ? requester._id : undefined,
     doctorId: doctorIdFinal,
     patientId,
     price: bookingPrice,
@@ -176,7 +177,9 @@ console.log("Creating invoice with items:", appointment._id);
     // proceed without failing the appointment creation
   }
 
-  res.status(200).json({ success: true, appointment, message: 'Appointment Created!' });
+  // Return populated appointment (include booked_by and invoices)
+  const populatedAppointment = await Appointment.findById(appointment._id).populate('booked_by').populate('invoices');
+  res.status(200).json({ success: true, appointment: populatedAppointment, message: 'Appointment Created!' });
 });
 
 export const getAllAppointments = catchAsyncErrors(async (req, res, next) => {
