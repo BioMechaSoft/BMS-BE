@@ -233,12 +233,35 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     role: 'Patient'
   });
   if (!patient) {
-    let firstName = name.slice(0, name.indexOf(' '));
-    let lastName =name.slice(name.indexOf(' ') + 1) || ' ';
+    // Robust name parsing: trim, collapse spaces, split into words
+    const rawName = (name || '').toString().trim();
+    const nameParts = rawName.replace(/\s+/g, ' ').split(' ').filter(Boolean);
+    let firstName = '';
+    let lastName = '';
+
+    if (nameParts.length === 0) {
+      // No name provided: try to derive a reasonable firstName from email or phone
+      if (emailToUse) {
+        firstName = emailToUse.split('@')[0].slice(0, 20);
+      } else if (phone) {
+        firstName = `Patient-${phone.slice(-4)}`;
+      } else {
+        firstName = 'Patient';
+      }
+      lastName = '';
+    } else if (nameParts.length === 1) {
+      firstName = nameParts[0];
+      lastName = '';
+    } else {
+      firstName = nameParts[0];
+      lastName = nameParts.slice(1).join(' ');
+    }
+
     const patientPassword = password || 'defaultPassword123';
     patient = await User.create({
       firstName,
       lastName,
+      name: rawName || `${firstName} ${lastName}`.trim(),
       email: emailToUse?.toLowerCase(),
       phone,
       nic: nicToUse,
