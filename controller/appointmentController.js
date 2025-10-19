@@ -408,7 +408,7 @@ export const searchAppointments = catchAsyncErrors(async (req, res, next) => {
 
   if (q) {
     const regex = new RegExp(q, 'i');
-    andClauses.push({ $or: [ { name: regex }, { phone: regex }, { email: regex }, { nic: regex } ] });
+    andClauses.push({ $or: [ { name: regex }, { firstName: regex }, { lastName: regex }, { phone: regex }, { email: regex }, { nic: regex }, { address: regex } ] });
   }
 
   if (department) {
@@ -426,6 +426,41 @@ export const searchAppointments = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("No appointments found for given search/filters", 404));
   }
   res.status(200).json({ success: true, appointments });
+});
+
+// Suggest existing patients for autosuggest during appointment booking
+export const suggestPatients = catchAsyncErrors(async (req, res, next) => {
+  const { q, limit = 10 } = req.query;
+  if (!q || String(q).trim().length === 0) {
+    return res.status(200).json({ success: true, patients: [] });
+  }
+  const regex = new RegExp(q, 'i');
+  // search users with role Patient
+  const users = await User.find({
+    role: 'Patient',
+    $or: [ { name: regex }, { firstName: regex }, { lastName: regex }, { phone: regex }, { email: regex }, { nic: regex }, { address: regex } ]
+  }).limit(Number(limit)).select('name firstName lastName phone email address nic').lean();
+
+  // Optionally include last appointment date for each patient
+  const results = await Promise.all(users.map(async (u) => {
+    const lastAppt = await Appointment.findOne({ patientId: u._id }).sort({ appointment_date: -1 }).select('appointment_date department doctorId').lean();
+    return {
+      _id: u._id,
+      name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+      firstName: u.firstName,
+      lastName: u.lastName,
+      phone: u.phone,
+      email: u.email,
+      address: u.address,
+      nic: u.nic,
+      dob: u.dob || null,
+      gender: u.gender || null,
+      age: u.age || null,
+      lastAppointment: lastAppt ? lastAppt.appointment_date : null,
+    };
+  }));
+
+  res.status(200).json({ success: true, patients: results });
 });
 
 // Update latest appointment for a patient by patient ID
