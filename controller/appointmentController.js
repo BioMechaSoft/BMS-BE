@@ -179,6 +179,7 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     doctorId,
     hasVisited,
     address,
+    result,
     password
     // optional, for new patient creation
   } = req.body;
@@ -307,6 +308,7 @@ export const postAppointment = catchAsyncErrors(async (req, res, next) => {
     dob: dobDate,
     age: ageVal,
     gender,
+    result,
     appointment_date: apptDate,
     followup_date: followup_date,
     department,
@@ -468,6 +470,7 @@ export const suggestPatients = catchAsyncErrors(async (req, res, next) => {
       lastName: u.lastName,
       phone: u.phone,
       email: u.email,
+      diagnosys: u.diagnosys || null,
       address: u.address,
       nic: u.nic,
       dob: u.dob || null,
@@ -521,7 +524,9 @@ export const updateAppointmentByPatientId = catchAsyncErrors(async (req, res, ne
   }
 
   // Ensure payment/status consistency for patient-update route
-  const updatePayload = harmonizeStatusPayment({ incomingPayload: payload, existingAppointment: latest, context: 'prescription_save' });
+  // Harmonize status/payment, then merge with the rest of the payload from the request body
+  const harmonizedStatusPayment = harmonizeStatusPayment({ incomingPayload: payload, existingAppointment: latest, context: 'prescription_save' });
+  const updatePayload = { ...payload, ...harmonizedStatusPayment };
 
   const updated = await Appointment.findByIdAndUpdate(latest._id, updatePayload, {
     new: true,
